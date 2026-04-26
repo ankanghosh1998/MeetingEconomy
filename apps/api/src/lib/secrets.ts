@@ -15,24 +15,26 @@ function encryptionKey() {
   return createHash("sha256").update(raw).digest();
 }
 
-export function encryptSecret(value?: string | null) {
-  if (!value) return null;
+export function encryptSecret(value: string | null | undefined) {
+  if (!value) return value ?? null;
+  if (value.startsWith(PREFIX)) return value;
+
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `${PREFIX}${Buffer.concat([iv, tag, encrypted]).toString("base64")}`;
+  return `${PREFIX}${Buffer.concat([iv, tag, ciphertext]).toString("base64url")}`;
 }
 
-export function decryptSecret(value?: string | null) {
-  if (!value) return null;
+export function decryptSecret(value: string | null | undefined) {
+  if (!value) return value ?? null;
   if (!value.startsWith(PREFIX)) return value;
-  const payload = Buffer.from(value.slice(PREFIX.length), "base64");
+
+  const payload = Buffer.from(value.slice(PREFIX.length), "base64url");
   const iv = payload.subarray(0, 12);
   const tag = payload.subarray(12, 28);
-  const encrypted = payload.subarray(28);
+  const ciphertext = payload.subarray(28);
   const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), iv);
   decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-  return decrypted.toString("utf8");
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
 }

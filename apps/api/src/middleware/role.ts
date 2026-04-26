@@ -1,13 +1,14 @@
-import type { NextFunction, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
+import type { UserRole } from "@meetingeconomy/types";
 import type { AuthedRequest } from "./auth";
 import { AppError } from "../lib/errors";
 
-export function roleMiddleware(...roles: Array<"ADMIN" | "MANAGER" | "MEMBER">) {
-  return (req: AuthedRequest, _res: Response, next: NextFunction) => {
-    if (!req.user) return next(new AppError(401, "Authentication required.", "AUTH_REQUIRED"));
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError(403, "Insufficient role.", "FORBIDDEN"));
+export function roleMiddleware(...allowed: UserRole[]) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const authed = req as AuthedRequest;
+    if (!allowed.includes(authed.user.role)) {
+      return next(new AppError(403, "You do not have access to this resource.", "FORBIDDEN"));
     }
-    return next();
+    next();
   };
 }

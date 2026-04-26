@@ -9,23 +9,31 @@ import { AuthGuard } from "@/components/auth-guard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBanner } from "@/components/ui/status-banner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiFetch } from "@/lib/api";
-import { formatDateTime, money, preciseMoney } from "@/lib/utils";
+import { apiFetch, errorMessage } from "@/lib/api";
+import { cn, formatDateTime, money, preciseMoney } from "@/lib/utils";
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<MeetingListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   async function load() {
     setLoading(true);
-    const data = await apiFetch<{ meetings: MeetingListItem[] }>("/meetings");
-    setMeetings(data.meetings);
-    setLoading(false);
+    setLoadError("");
+    try {
+      const data = await apiFetch<{ meetings: MeetingListItem[] }>("/meetings");
+      setMeetings(data.meetings);
+    } catch (error) {
+      setLoadError(errorMessage(error, "Unable to load meetings."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    load().catch(() => setLoading(false));
+    void load();
   }, []);
 
   return (
@@ -36,11 +44,16 @@ export default function MeetingsPage() {
             <h1 className="text-2xl font-semibold">Meetings</h1>
             <p className="text-sm text-muted-foreground">Imported calendar events with computed cost</p>
           </div>
-          <Button variant="outline" onClick={() => load()}>
-            <RefreshCw className="h-4 w-4" />
-            Refresh
+          <Button disabled={loading} variant="outline" onClick={() => void load()}>
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
+        {loadError ? (
+          <StatusBanner className="mb-4" variant="error">
+            {loadError}
+          </StatusBanner>
+        ) : null}
         <Card>
           <CardHeader>
             <CardTitle>All Meetings</CardTitle>
@@ -79,7 +92,14 @@ export default function MeetingsPage() {
                     <TableCell className="text-right font-medium">{money(meeting.total_cost)}</TableCell>
                   </TableRow>
                 ))}
-                {!loading && !meetings.length ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell className="text-muted-foreground" colSpan={6}>
+                      Loading meetings...
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+                {!loading && !meetings.length && !loadError ? (
                   <TableRow>
                     <TableCell className="text-muted-foreground" colSpan={6}>
                       No meetings imported yet.

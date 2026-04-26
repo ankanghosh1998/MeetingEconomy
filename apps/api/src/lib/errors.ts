@@ -46,9 +46,9 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
 
   console.error(error);
   return res.status(500).json({
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Unexpected server error."
-      }
-    });
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Unexpected server error."
+    }
+  });
 }

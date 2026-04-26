@@ -1,15 +1,17 @@
-import type { AnyZodObject, ZodTypeAny } from "zod";
 import type { NextFunction, Request, Response } from "express";
+import type { AnyZodObject, ZodTypeAny } from "zod";
 
-export function validate(schema: {
-  body?: ZodTypeAny;
-  query?: AnyZodObject;
-  params?: AnyZodObject;
-}) {
+type ValidationSchemas = {
+  body?: AnyZodObject | ZodTypeAny;
+  query?: AnyZodObject | ZodTypeAny;
+  params?: AnyZodObject | ZodTypeAny;
+};
+
+export function validate(schemas: ValidationSchemas) {
   return (req: Request, _res: Response, next: NextFunction) => {
-    if (schema.body) req.body = schema.body.parse(req.body);
-    if (schema.query) req.query = schema.query.parse(req.query);
-    if (schema.params) req.params = schema.params.parse(req.params);
+    if (schemas.body) req.body = schemas.body.parse(req.body);
+    if (schemas.query) req.query = schemas.query.parse(req.query);
+    if (schemas.params) req.params = schemas.params.parse(req.params);
     next();
   };
 }

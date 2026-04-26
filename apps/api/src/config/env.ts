@@ -7,7 +7,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().default("redis://localhost:6379"),
   JWT_SECRET: z.string().default("dev-secret-change-me"),
   ENCRYPTION_KEY: z.string().optional(),
-  API_PORT: z.coerce.number().default(4000),
+  PORT: z.coerce.number().optional(),
+  API_PORT: z.coerce.number().optional(),
   API_URL: z.string().url().default("http://localhost:4000"),
   WEB_URL: z.string().url().default("http://localhost:3000"),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
@@ -31,7 +32,12 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional()
 });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+
+export const env = {
+  ...parsedEnv,
+  API_PORT: parsedEnv.API_PORT ?? parsedEnv.PORT ?? 4000
+};
 
 export function isConfigured(value?: string | null) {
   return Boolean(value && value.trim() !== "" && value.trim() !== "<UNSPECIFIED>");

@@ -54,6 +54,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return (await response.json()) as T;
 }
 
+export function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export async function login(email: string, password: string) {
   const auth = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
