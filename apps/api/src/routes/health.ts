@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "@meetingeconomy/db";
-import { env } from "../config/env";
+import { env, isRedisConfigured } from "../config/env";
 import { getRedisConnection } from "../jobs/queue";
 
 export const healthRouter = Router();
@@ -24,7 +24,7 @@ healthRouter.get("/live", (_req, res) => {
 healthRouter.get("/ready", async (_req, res) => {
   const checks: Record<string, boolean> = {
     database: false,
-    redis: !env.READINESS_CHECK_REDIS
+    redis: !env.READINESS_CHECK_REDIS || !isRedisConfigured
   };
 
   try {
@@ -34,7 +34,7 @@ healthRouter.get("/ready", async (_req, res) => {
     checks.database = false;
   }
 
-  if (env.READINESS_CHECK_REDIS) {
+  if (env.READINESS_CHECK_REDIS && isRedisConfigured) {
     try {
       await getRedisConnection().ping();
       checks.redis = true;
