@@ -4,7 +4,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().default("postgresql://postgres:postgres@localhost:5432/meetingeconomy?schema=public"),
-  REDIS_URL: z.string().default("redis://localhost:6379"),
+  REDIS_URL: z.string().optional(),
   JWT_SECRET: z.string().default("dev-secret-change-me"),
   ENCRYPTION_KEY: z.string().optional(),
   PORT: z.coerce.number().optional(),
@@ -36,6 +36,7 @@ const parsedEnv = envSchema.parse(process.env);
 
 export const env = {
   ...parsedEnv,
+  REDIS_URL: parsedEnv.REDIS_URL ?? (parsedEnv.NODE_ENV === "production" ? undefined : "redis://localhost:6379"),
   API_PORT: parsedEnv.API_PORT ?? parsedEnv.PORT ?? 4000
 };
 
@@ -44,6 +45,7 @@ export function isConfigured(value?: string | null) {
 }
 
 export const isProduction = env.NODE_ENV === "production";
+export const isRedisConfigured = isConfigured(env.REDIS_URL);
 
 if (isProduction && (!isConfigured(env.JWT_SECRET) || env.JWT_SECRET === "dev-secret-change-me")) {
   throw new Error("JWT_SECRET must be configured in production.");
