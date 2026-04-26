@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
 import { prisma } from "@meetingeconomy/db";
-import { env } from "../config/env";
+import { env, isRedisConfigured } from "../config/env";
 import { closeQueues, getRedisConnection, scheduleRecurringJobs } from "./queue";
 import { syncAllCalendarIntegrations, syncCalendarIntegration } from "../services/calendar";
 import { recalculateOrganizationCosts } from "../services/costEngine";
@@ -39,54 +39,63 @@ Average cost per meeting: $${dashboard.avg_cost_per_meeting}`
   return orgs.length;
 }
 
-const redisConnection = getRedisConnection();
+const workers: Worker[] = [];
 
-const calendarWorker = new Worker(
-  "calendar-sync",
-  async (job) => {
-    if (job.name === "sync-all" || !job.data.integrationId) {
-      return syncAllCalendarIntegrations();
-    }
-    return syncCalendarIntegration(job.data.integrationId);
-  },
-  { connection: redisConnection }
-);
+if (!isRedisConfigured || !env.REDIS_URL) {
+  console.warn("REDIS_URL not configured; background workers are disabled.");
+  setInterval(() => {}, 60_000);
+} else {
+  const redisConnection = getRedisConnection();
 
-const costWorker = new Worker(
-  "cost-recalculation",
-  async (job) => {
-    if (job.name === "recalculate-all") {
-      const orgs = await prisma.organization.findMany({ select: { id: true } });
-      let count = 0;
-      for (const org of orgs) {
-        count += await recalculateOrganizationCosts(org.id);
+  const calendarWorker = new Worker(
+    "calendar-sync",
+    async (job) => {
+      if (job.name === "sync-all" || !job.data.integrationId) {
+        return syncAllCalendarIntegrations();
       }
-      return count;
-    }
-    return recalculateOrganizationCosts(job.data.orgId);
-  },
-  { connection: redisConnection }
-);
+      return syncCalendarIntegration(job.data.integrationId);
+    },
+    { connection: redisConnection }
+  );
 
-const weeklyWorker = new Worker("weekly-report", sendWeeklyReports, {
-  connection: redisConnection
-});
+  const costWorker = new Worker(
+    "cost-recalculation",
+    async (job) => {
+      if (job.name === "recalculate-all") {
+        const orgs = await prisma.organization.findMany({ select: { id: true } });
+        let count = 0;
+        for (const org of orgs) {
+          count += await recalculateOrganizationCosts(org.id);
+        }
+        return count;
+      }
+      return recalculateOrganizationCosts(job.data.orgId);
+    },
+    { connection: redisConnection }
+  );
 
-for (const worker of [calendarWorker, costWorker, weeklyWorker]) {
-  worker.on("failed", (job, error) => {
-    console.error(`Job failed: ${job?.queueName}/${job?.name}`, error);
+  const weeklyWorker = new Worker("weekly-report", sendWeeklyReports, {
+    connection: redisConnection
   });
+
+  workers.push(calendarWorker, costWorker, weeklyWorker);
+
+  for (const worker of workers) {
+    worker.on("failed", (job, error) => {
+      console.error(`Job failed: ${job?.queueName}/${job?.name}`, error);
+    });
+  }
+
+  scheduleRecurringJobs()
+    .then(() => {
+      console.info(`MeetingEconomy workers running with Redis ${env.REDIS_URL}`);
+    })
+    .catch((error) => {
+      console.error("Unable to schedule recurring jobs.", error);
+    });
 }
 
-scheduleRecurringJobs()
-  .then(() => {
-    console.info(`MeetingEconomy workers running with Redis ${env.REDIS_URL}`);
-  })
-  .catch((error) => {
-    console.error("Unable to schedule recurring jobs.", error);
-  });
-
 process.on("SIGTERM", async () => {
-  await Promise.all([calendarWorker.close(), costWorker.close(), weeklyWorker.close(), closeQueues()]);
+  await Promise.all([...workers.map((worker) => worker.close()), closeQueues()]);
   process.exit(0);
 });
