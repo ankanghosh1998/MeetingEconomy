@@ -1,6 +1,6 @@
 import { Queue, type JobsOptions } from "bullmq";
 import IORedis from "ioredis";
-import { env } from "../config/env";
+import { env, isRedisConfigured } from "../config/env";
 
 let redisConnection: IORedis | null = null;
 let calendarSyncQueue: Queue | null = null;
@@ -8,6 +8,10 @@ let costRecalculationQueue: Queue | null = null;
 let weeklyReportQueue: Queue | null = null;
 
 export function getRedisConnection() {
+  if (!isRedisConfigured || !env.REDIS_URL) {
+    throw new Error("REDIS_URL is not configured.");
+  }
+
   if (!redisConnection) {
     redisConnection = new IORedis(env.REDIS_URL, {
       maxRetriesPerRequest: null,
