@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: meetingeconomy-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run db:generate && npm run build -w @meetingeconomy/api
+    preDeployCommand: npm run db:deploy
+    startCommand: npm run start -w @meetingeconomy/api
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+  - type: worker
+    name: meetingeconomy-worker
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run db:generate && npm run build -w @meetingeconomy/api
+    startCommand: npm run start:worker -w @meetingeconomy/api
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false

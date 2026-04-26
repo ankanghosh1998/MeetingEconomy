@@ -1,0 +1,42 @@
+{
+  "name": "meetingeconomy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MeetingEconomy - meeting intelligence, cost analytics, and MOM automation SaaS.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run db:generate && concurrently -n api,web -c cyan,magenta \"npm run dev -w @meetingeconomy/api\" \"npm run dev -w @meetingeconomy/web\"",
+    "dev:full": "npm run db:generate && concurrently -n api,web,worker -c cyan,magenta,yellow \"npm run dev -w @meetingeconomy/api\" \"npm run dev -w @meetingeconomy/web\" \"npm run worker -w @meetingeconomy/api\"",
+    "dev:api": "npm run dev -w @meetingeconomy/api",
+    "dev:web": "npm run dev -w @meetingeconomy/web",
+    "worker": "npm run worker -w @meetingeconomy/api",
+    "start:worker": "npm run start:worker -w @meetingeconomy/api",
+    "build": "npm run db:generate && npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "db:generate": "npm run generate -w @meetingeconomy/db",
+    "db:migrate": "npm run migrate -w @meetingeconomy/db",
+    "db:deploy": "npm run deploy -w @meetingeconomy/db",
+    "db:seed": "npm run seed -w @meetingeconomy/db",
+    "db:studio": "npm run studio -w @meetingeconomy/db",
+    "launch:check": "tsx scripts/launch-check.ts",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "concurrently": "^9.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  }
+}

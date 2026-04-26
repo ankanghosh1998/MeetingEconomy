@@ -1,0 +1,5 @@
+Name,Email,Role,Salary
+Ada Admin,admin@acme.test,Product,160000
+Morgan Manager,morgan@acme.test,Engineering,155000
+Maya Member,maya@acme.test,Engineering,130000
+Owen Ops,owen@acme.test,Operations,
